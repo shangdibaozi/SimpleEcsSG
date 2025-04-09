@@ -44,6 +44,20 @@ public class CustomSyntaxReceiver : ISyntaxReceiver
         if (syntaxNode is ClassDeclarationSyntax classDeclarationSyntax &&
             classDeclarationSyntax.AttributeLists.Count > 0)
         {
+            if (classDeclarationSyntax.BaseList == null)
+            {
+                return;
+            }
+            foreach (var baseType in classDeclarationSyntax.BaseList.Types)
+            {
+                var typeName = baseType.Type.ToString();
+                if (!typeName.Equals($"Aspect<{classDeclarationSyntax.Identifier.ValueText}>"))
+                {
+                    return;
+                }
+            }
+            
+            
             var attributes = from attributeList in classDeclarationSyntax.AttributeLists
                 from attribute in attributeList.Attributes
                 select attribute;
