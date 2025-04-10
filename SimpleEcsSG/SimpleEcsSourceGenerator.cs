@@ -16,19 +16,6 @@ namespace SimpleEcsSourceGenerator
         
         public void Execute(GeneratorExecutionContext context)
         {
-            var aspectAttribute =
-$@"
-using System;
-namespace {Def.NS}
-{{
-    [AttributeUsage(AttributeTargets.Class)]
-    internal sealed class {Def.Attribute_Aspect}Attribute : Attribute
-    {{
-    }} 
-}}
-";
-            context.AddSource($"{Def.Attribute_Aspect}Attribute.g.cs", SourceText.From(aspectAttribute, Encoding.UTF8));
-            
             var syntaxReceiver = context.SyntaxReceiver as CustomSyntaxReceiver;
             if (syntaxReceiver == null || syntaxReceiver.CandidateClassWorkItems.Count == 0)
             {

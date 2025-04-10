@@ -41,8 +41,7 @@ public class CustomSyntaxReceiver : ISyntaxReceiver
     {
         classWorkItem = null;
         structWorkItem = null;
-        if (syntaxNode is ClassDeclarationSyntax classDeclarationSyntax &&
-            classDeclarationSyntax.AttributeLists.Count > 0)
+        if (syntaxNode is ClassDeclarationSyntax classDeclarationSyntax)
         {
             if (classDeclarationSyntax.BaseList == null)
             {
@@ -50,47 +49,14 @@ public class CustomSyntaxReceiver : ISyntaxReceiver
             }
             foreach (var baseType in classDeclarationSyntax.BaseList.Types)
             {
-                var typeName = baseType.Type.ToString();
-                if (!typeName.Equals($"Aspect<{classDeclarationSyntax.Identifier.ValueText}>"))
+                var className = baseType.Type.ToString();
+                if (className.Equals($"Aspect<{classDeclarationSyntax.Identifier.ValueText}>"))
                 {
-                    return;
+                    var classItem = new ClassWorkItem(classDeclarationSyntax);
+                    var typeDeclarationSyntax = classItem.ClassDeclaration as TypeDeclarationSyntax;
+                    classItem.SetTypeName(typeDeclarationSyntax.Identifier.ValueText);
+                    classWorkItem = classItem;
                 }
-            }
-            
-            
-            var attributes = from attributeList in classDeclarationSyntax.AttributeLists
-                from attribute in attributeList.Attributes
-                select attribute;
-            var item = new ClassWorkItem(classDeclarationSyntax);
-            foreach (var attribute in attributes)
-            {
-                var attributeName = attribute.Name.ToString();
-                switch (attributeName)
-                {
-                    case var name when name == Def.Attribute_Aspect ||
-                                       name == $"{Def.Attribute_Aspect}Attribute" ||
-                                       name == Def.NS + "." +
-                                       Def.Attribute_Aspect ||
-                                       name == Def.NS + "." +
-                                       Def.Attribute_Aspect + "Attribute":
-                        item.SetIsExist(true);
-                        break;
-                }
-            }
-
-            if (item.IsExist)
-            {
-                var typeDeclarationSyntax = item.ClassDeclaration as TypeDeclarationSyntax;
-                var typeName = new StringBuilder()
-                    .Append("partial ")
-                    .Append(typeDeclarationSyntax.Keyword.ValueText)
-                    .Append(" ")
-                    .Append(typeDeclarationSyntax.Identifier.ToString())
-                    .Append(typeDeclarationSyntax.TypeParameterList)
-                    .Append(" ")
-                    .Append(typeDeclarationSyntax.ConstraintClauses.ToString());
-                item.SetTypeName(typeName.ToString());
-                classWorkItem = item;
             }
         }
         else if (syntaxNode is StructDeclarationSyntax structDeclaration)
@@ -115,7 +81,7 @@ public class CustomSyntaxReceiver : ISyntaxReceiver
 public class ClassWorkItem
 {
     public readonly ClassDeclarationSyntax ClassDeclaration;
-    public bool IsExist { get; private set; }
+    // public bool IsExist { get; private set; }
     public string TypeName { get; private set; }
 
     public ClassWorkItem(ClassDeclarationSyntax classDeclaration)
@@ -127,11 +93,11 @@ public class ClassWorkItem
     {
         TypeName = typeName;
     }
-
-    public void SetIsExist(bool isExist)
-    {
-        IsExist = isExist;
-    }
+    //
+    // public void SetIsExist(bool isExist)
+    // {
+    //     IsExist = isExist;
+    // }
 }
 
 public class StructWorkItem
