@@ -90,7 +90,7 @@ namespace {Def.NS}
             codeWriter.AppendLine(typeName);
             codeWriter.BeginBlock();
 
-            var hashFiled = new HashSet<StructWorkItem>();
+            var hashFiled = new HashSet<string>();
             var interfaceName = $"I{className}";
             foreach (var workItem in workItems.Values)
             {
@@ -98,16 +98,17 @@ namespace {Def.NS}
                 {
                     if (item.ImplementInterfaces.Contains(interfaceName))
                     {
-                        hashFiled.Add(item);
+                        hashFiled.Add(item.TypeName);
                     }
                 }
             }
+            
             // 防止重复生成
-            foreach (var item in hashFiled)
+            foreach (var classTypeName in hashFiled)
             {
-                var fileName = FirstCharToLower(item.TypeName);
+                var fileName = FirstCharToLower(classTypeName);
                 fileName = fileName.Replace("Component", "Pool").Replace("Comp", "Pool");
-                codeWriter.AppendLine($"public readonly CPool<{item.TypeName}> {fileName} = null;");
+                codeWriter.AppendLine($"public readonly CPool<{classTypeName}> {fileName} = null;");
             }
         
             codeWriter.EndBlock();
