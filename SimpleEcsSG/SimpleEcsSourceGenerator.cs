@@ -67,7 +67,7 @@ namespace {Def.NS}
         {
             var typeNameBuilder = new StringBuilder();
         
-            typeNameBuilder.Append("partial ")
+            typeNameBuilder.Append("public partial ")
                 .Append(typeDeclarationSyntax.Keyword.ValueText)
                 .Append(" ")
                 .Append(typeDeclarationSyntax.Identifier.ToString())
@@ -90,6 +90,7 @@ namespace {Def.NS}
             codeWriter.AppendLine(typeName);
             codeWriter.BeginBlock();
 
+            var hashFiled = new HashSet<StructWorkItem>();
             var interfaceName = $"I{className}";
             foreach (var workItem in workItems.Values)
             {
@@ -97,11 +98,16 @@ namespace {Def.NS}
                 {
                     if (item.ImplementInterfaces.Contains(interfaceName))
                     {
-                        var fileName = FirstCharToLower(item.TypeName);
-                        fileName = fileName.Replace("Component", "Pool").Replace("Comp", "Pool");
-                        codeWriter.AppendLine($"public readonly CPool<{item.TypeName}> {fileName} = null;");
+                        hashFiled.Add(item);
                     }
                 }
+            }
+            // 防止重复生成
+            foreach (var item in hashFiled)
+            {
+                var fileName = FirstCharToLower(item.TypeName);
+                fileName = fileName.Replace("Component", "Pool").Replace("Comp", "Pool");
+                codeWriter.AppendLine($"public readonly CPool<{item.TypeName}> {fileName} = null;");
             }
         
             codeWriter.EndBlock();
