@@ -2,12 +2,15 @@
 using System.Linq;
 using System.Text;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 public class CustomSyntaxReceiver : ISyntaxReceiver
 {
     public Dictionary<string, List<ClassWorkItem>> CandidateClassWorkItems { get; } = new Dictionary<string, List<ClassWorkItem>>();
     public Dictionary<string, List<StructWorkItem>> CandidateStructWorkItems { get; } = new Dictionary<string, List<StructWorkItem>>();
+    
+    public List<ClassDeclarationSyntax> CandidateClasses { get; } = new List<ClassDeclarationSyntax>();
 
     public void OnVisitSyntaxNode(SyntaxNode syntaxNode)
     {
@@ -37,7 +40,7 @@ public class CustomSyntaxReceiver : ISyntaxReceiver
         }
     }
 
-    private static void TryGetWorkItem(SyntaxNode syntaxNode, out ClassWorkItem classWorkItem, out StructWorkItem structWorkItem)
+    private void TryGetWorkItem(SyntaxNode syntaxNode, out ClassWorkItem classWorkItem, out StructWorkItem structWorkItem)
     {
         classWorkItem = null;
         structWorkItem = null;
@@ -47,15 +50,25 @@ public class CustomSyntaxReceiver : ISyntaxReceiver
             {
                 return;
             }
+
+            var isAspect = false;
             foreach (var baseType in classDeclarationSyntax.BaseList.Types)
             {
                 var className = baseType.Type.ToString();
                 if (className.Equals($"Aspect<{classDeclarationSyntax.Identifier.ValueText}>"))
                 {
                     var classItem = new ClassWorkItem(classDeclarationSyntax);
-                    var typeDeclarationSyntax = classItem.ClassDeclaration as TypeDeclarationSyntax;
-                    classItem.SetTypeName(typeDeclarationSyntax.Identifier.ValueText);
+                    classItem.SetTypeName(classDeclarationSyntax.Identifier.ValueText);
                     classWorkItem = classItem;
+                    isAspect = true;
+                }
+            }
+
+            if (!isAspect)
+            {
+                if (!classDeclarationSyntax.Identifier.ValueText.Equals("EcsSystemGroup"))
+                {
+                    CandidateClasses.Add(classDeclarationSyntax);
                 }
             }
         }
@@ -64,8 +77,7 @@ public class CustomSyntaxReceiver : ISyntaxReceiver
             if (structDeclaration.BaseList != null)
             {
                 var item = new StructWorkItem(structDeclaration);
-                var typeDeclaration = structDeclaration as TypeDeclarationSyntax;
-                item.SetTypeName(typeDeclaration.Identifier.ValueText);
+                item.SetTypeName(structDeclaration.Identifier.ValueText);
                 structWorkItem = item;
 
                 structWorkItem.HasFiled = structDeclaration.Members.Count > 0;
