@@ -67,6 +67,8 @@ public class CustomSyntaxReceiver : ISyntaxReceiver
                 var typeDeclaration = structDeclaration as TypeDeclarationSyntax;
                 item.SetTypeName(typeDeclaration.Identifier.ValueText);
                 structWorkItem = item;
+
+                structWorkItem.HasFiled = structDeclaration.Members.Count > 0;
                 
                 foreach (var baseType in structDeclaration.BaseList.Types)
                 {
@@ -81,7 +83,6 @@ public class CustomSyntaxReceiver : ISyntaxReceiver
 public class ClassWorkItem
 {
     public readonly ClassDeclarationSyntax ClassDeclaration;
-    // public bool IsExist { get; private set; }
     public string TypeName { get; private set; }
 
     public ClassWorkItem(ClassDeclarationSyntax classDeclaration)
@@ -93,11 +94,6 @@ public class ClassWorkItem
     {
         TypeName = typeName;
     }
-    //
-    // public void SetIsExist(bool isExist)
-    // {
-    //     IsExist = isExist;
-    // }
 }
 
 public class StructWorkItem
@@ -105,6 +101,8 @@ public class StructWorkItem
     public readonly StructDeclarationSyntax StructDeclaration;
     public readonly List<string> ImplementInterfaces = new List<string>();
     public string TypeName { get; private set; }
+
+    public bool HasFiled = true;
 
     public StructWorkItem(StructDeclarationSyntax structDeclaration)
     {

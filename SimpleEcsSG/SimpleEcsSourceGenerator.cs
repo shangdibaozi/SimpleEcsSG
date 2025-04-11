@@ -78,6 +78,7 @@ namespace SimpleEcsSourceGenerator
             codeWriter.BeginBlock();
 
             var hashFiled = new HashSet<string>();
+            var dictTag = new Dictionary<string, bool>();
             var interfaceName = $"I{className}";
             foreach (var workItem in workItems.Values)
             {
@@ -86,6 +87,7 @@ namespace SimpleEcsSourceGenerator
                     if (item.ImplementInterfaces.Contains(interfaceName))
                     {
                         hashFiled.Add(item.TypeName);
+                        dictTag[item.TypeName] = item.HasFiled;
                     }
                 }
             }
@@ -95,7 +97,14 @@ namespace SimpleEcsSourceGenerator
             {
                 var fileName = FirstCharToLower(classTypeName);
                 fileName = fileName.Replace("Component", "Pool").Replace("Comp", "Pool");
-                codeWriter.AppendLine($"public readonly CPool<{classTypeName}> {fileName} = null;");
+                if (dictTag[classTypeName])
+                {
+                    codeWriter.AppendLine($"public readonly CPool<{classTypeName}> {fileName} = null;");
+                }
+                else
+                {
+                    codeWriter.AppendLine($"public readonly CTagPool<{classTypeName}> {fileName} = null;");
+                }
             }
         
             codeWriter.EndBlock();
