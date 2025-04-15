@@ -11,6 +11,12 @@ namespace SimpleEcsSourceGenerator
     [Generator]
     public class SimpleEcsSourceGenerator : ISourceGenerator
     {
+        private readonly StringBuilder parameterBuilder = new StringBuilder();
+        private readonly StringBuilder parameterBuilderNoType = new StringBuilder();
+        private readonly List<string> methods = new List<string>();
+        private readonly List<string> methodParams = new List<string>();
+        private readonly List<string> methodParamNoType = new List<string>();
+        
         public void Initialize(GeneratorInitializationContext context)
         {
             context.RegisterForSyntaxNotifications(() => new CustomSyntaxReceiver());
@@ -44,13 +50,40 @@ namespace SimpleEcsSourceGenerator
 
             if (syntaxReceiver.CandidateClasses.Count > 0)
             {
+                var observerDict = new Dictionary<INamedTypeSymbol, List<string>>();
+                var iEcsSystem = context.Compilation.GetTypeByMetadataName("SimpleEcs.IEcsSystem");
+                var iObserver = context.Compilation.GetTypeByMetadataName("SimpleEcs.IObserver");
                 var hashSys = new HashSet<string>();
                 foreach (var classDeclarationSyntax in syntaxReceiver.CandidateClasses)
                 {
-                    var cname = AddSystem(classDeclarationSyntax, context);
-                    if (cname != null)
+                    var isAbstractClass = classDeclarationSyntax.Modifiers.Any(modifier => modifier.IsKind(SyntaxKind.AbstractKeyword));
+                    if (isAbstractClass)
                     {
-                        hashSys.Add(cname);
+                        continue;
+                    }
+                    var semanticModel = context.Compilation.GetSemanticModel(classDeclarationSyntax.SyntaxTree);
+                    var classSymbol = semanticModel.GetDeclaredSymbol(classDeclarationSyntax);
+                    if (classSymbol == null)
+                    {
+                        continue;
+                    }
+                    var isImplementIEcsSystem = classSymbol.AllInterfaces.Contains(iEcsSystem, SymbolEqualityComparer.Default);
+                    if (isImplementIEcsSystem)
+                    {
+                        foreach (var ifc in classSymbol.Interfaces)
+                        {
+                            if ( ifc.AllInterfaces.Contains(iObserver, SymbolEqualityComparer.Default))
+                            {
+                                if (!observerDict.TryGetValue(ifc, out var systemNames))
+                                {
+                                    observerDict[ifc] = new List<string>();
+                                    systemNames = observerDict[ifc];
+                                }
+                                systemNames.Add(classDeclarationSyntax.Identifier.ValueText);
+                            }
+                        }
+                        
+                        hashSys.Add(classDeclarationSyntax.Identifier.ValueText);
                     }
                 }
 
@@ -71,6 +104,55 @@ namespace SimpleEcsSourceGenerator
 
                     codeWriter.AppendLine(";");
                     codeWriter.EndBlock();
+                    
+                    
+                    // 事件相关
+                    foreach (var item in observerDict)
+                    {
+                        var ifc = item.Key;
+                        var sysNames = item.Value;
+                        foreach (var member in ifc.GetMembers())
+                        {
+                            if (member is IMethodSymbol method && method.MethodKind == MethodKind.Ordinary)
+                            {
+                                for(var i = 0; i < method.Parameters.Length; i++)
+                                {
+                                    var param = method.Parameters[i];
+                                    parameterBuilder.Append(param.Type.ToDisplayString());
+                                    parameterBuilder.Append($" arg{i}");
+                                    parameterBuilderNoType.Append($"arg{i}");
+                                    if (i != method.Parameters.Length - 1)
+                                    {
+                                        parameterBuilder.Append(", ");
+                                        parameterBuilderNoType.Append(", ");
+                                    }
+                                }
+                                methods.Add(method.Name);
+                                methodParams.Add(parameterBuilder.ToString());
+                                methodParamNoType.Add(parameterBuilderNoType.ToString());
+                                parameterBuilder.Clear();
+                                parameterBuilderNoType.Clear();
+                            }
+                        }
+
+                        for (var j = 0; j < methods.Count; j++)
+                        {
+                            codeWriter.AppendLine($"public static void {methods[j]}({methodParams[j]})");
+                            codeWriter.BeginBlock();
+                            foreach (var sysName in sysNames)
+                            {
+                                codeWriter.AppendLine($"EcsSystemGroup.Sys<{sysName}>().{methods[j]}({methodParamNoType[j]});");
+                            }
+                            codeWriter.EndBlock();
+                            codeWriter.AppendLine();
+                        }
+                        
+                        
+                        methods.Clear();
+                        methodParams.Clear();
+                        methodParamNoType.Clear();
+                    }
+                    
                     codeWriter.EndBlock();
                     var sourceText1 = SourceText.From(codeWriter.ToString(), System.Text.Encoding.UTF8);
                     context.AddSource("SystemHelper.g.cs", sourceText1);
@@ -78,32 +160,6 @@ namespace SimpleEcsSourceGenerator
                 }
             }
         }
-
-        private static string AddSystem(ClassDeclarationSyntax classDeclarationSyntax, GeneratorExecutionContext context)
-        {
-            // 不添加虚类
-            var canAdd = !classDeclarationSyntax.Modifiers.Any(modifier => modifier.IsKind(SyntaxKind.AbstractKeyword));
-            if (canAdd)
-            {
-                // 获取语义模型
-                var semanticModel = context.Compilation.GetSemanticModel(classDeclarationSyntax.SyntaxTree);
-                var classSymbol = semanticModel.GetDeclaredSymbol(classDeclarationSyntax) as ITypeSymbol;
-                // 确保正确获取IEcsSystem接口的符号，需替换实际命名空间
-                var ecsSystemInterface = context.Compilation.GetTypeByMetadataName("SimpleEcs.IEcsSystem");
-                if (ecsSystemInterface == null)
-                    return null; // 接口不存在于当前上下文中
-                // 检查类是否直接或间接实现了IEcsSystem
-                bool implementsEcsSystem =
-                    classSymbol.AllInterfaces.Contains(ecsSystemInterface, SymbolEqualityComparer.Default);
-                if (implementsEcsSystem)
-                {
-                    // 处理实现了IEcsSystem的情况
-                    return classDeclarationSyntax.Identifier.ValueText;
-                }
-            }
-            return null;
-        }
-
 
         private static void AppendIAspect(in CodeWriter codeWriter, string typeName)
         {
