@@ -32,7 +32,7 @@ namespace SimpleEcsSourceGenerator
                 if (ModelExtensions.GetDeclaredSymbol(semanticModel, workItem.ClassDeclaration) is INamedTypeSymbol symbol && symbol != null)
                 {
                     var typeName = WriteTypeName(workItem.ClassDeclaration);
-                    var namespaceName = NamespaceHelper.GetNamespacePath(symbol.ContainingNamespace);
+                    var namespaceName = GetNamespacePath(symbol.ContainingNamespace);
                     
                    
                     var sourceTextStr = AppendClassBody(codeWriter, namespaceName, workItem.ClassDeclaration.Identifier.ToString(), typeName, syntaxReceiver.CandidateStructWorkItems);
@@ -185,6 +185,23 @@ namespace SimpleEcsSourceGenerator
             if (string.IsNullOrEmpty(input))
                 return input;
             return char.ToLowerInvariant(input[0]) + input.Substring(1);
+        }
+        
+        public static string GetNamespacePath(INamespaceSymbol namespaceSymbol)
+        {
+            if (namespaceSymbol == null || namespaceSymbol.IsGlobalNamespace)
+            {
+                return string.Empty;
+            }
+        
+            var parentPath = GetNamespacePath(namespaceSymbol.ContainingNamespace);
+            string currentName = namespaceSymbol.Name;
+
+            if (!string.IsNullOrEmpty(parentPath))
+            {
+                return parentPath + "." + currentName;
+            }
+            return currentName;
         }
 
     }
