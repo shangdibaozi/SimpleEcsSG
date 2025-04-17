@@ -206,7 +206,7 @@ namespace SimpleEcsSourceGenerator
                     if (item.ImplementInterfaces.Contains(interfaceName))
                     {
                         hashFiled.Add(item.TypeName);
-                        dictTag[item.TypeName] = item.HasFiled;
+                        dictTag[item.TypeName] = item.IsTagComponent;
                     }
                 }
             }
@@ -218,11 +218,11 @@ namespace SimpleEcsSourceGenerator
                 fileName = fileName.Replace("Component", "Pool").Replace("Comp", "Pool");
                 if (dictTag[classTypeName])
                 {
-                    codeWriter.AppendLine($"public readonly CPool<{classTypeName}> {fileName} = null;");
+                    codeWriter.AppendLine($"public readonly CTagPool<{classTypeName}> {fileName} = null;");
                 }
                 else
                 {
-                    codeWriter.AppendLine($"public readonly CTagPool<{classTypeName}> {fileName} = null;");
+                    codeWriter.AppendLine($"public readonly CPool<{classTypeName}> {fileName} = null;");
                 }
             }
         

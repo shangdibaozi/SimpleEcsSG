@@ -80,7 +80,11 @@ public class CustomSyntaxReceiver : ISyntaxReceiver
                 item.SetTypeName(structDeclaration.Identifier.ValueText);
                 structWorkItem = item;
 
-                structWorkItem.HasFiled = structDeclaration.Members.Count > 0;
+                var hasFiled = structDeclaration.Members.Any(member => 
+                    member is FieldDeclarationSyntax || 
+                    member is PropertyDeclarationSyntax);
+
+                structWorkItem.IsTagComponent = !hasFiled && structDeclaration.Identifier.ValueText.StartsWith("Tag");
                 
                 foreach (var baseType in structDeclaration.BaseList.Types)
                 {
@@ -114,7 +118,7 @@ public class StructWorkItem
     public readonly List<string> ImplementInterfaces = new List<string>();
     public string TypeName { get; private set; }
 
-    public bool HasFiled = true;
+    public bool IsTagComponent = false;
 
     public StructWorkItem(StructDeclarationSyntax structDeclaration)
     {
