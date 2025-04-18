@@ -50,7 +50,7 @@ namespace SimpleEcsSourceGenerator
 
             if (syntaxReceiver.CandidateClasses.Count > 0)
             {
-                var observerDict = new Dictionary<INamedTypeSymbol, List<string>>();
+                var observerDict = new Dictionary<INamedTypeSymbol, HashSet<string>>();
                 var iEcsSystem = context.Compilation.GetTypeByMetadataName("SimpleEcs.IEcsSystem");
                 var iObserver = context.Compilation.GetTypeByMetadataName("SimpleEcs.IObserver");
                 var hashSys = new HashSet<string>();
@@ -76,7 +76,7 @@ namespace SimpleEcsSourceGenerator
                             {
                                 if (!observerDict.TryGetValue(ifc, out var systemNames))
                                 {
-                                    observerDict[ifc] = new List<string>();
+                                    observerDict[ifc] = new HashSet<string>();
                                     systemNames = observerDict[ifc];
                                 }
                                 systemNames.Add(classDeclarationSyntax.Identifier.ValueText);
