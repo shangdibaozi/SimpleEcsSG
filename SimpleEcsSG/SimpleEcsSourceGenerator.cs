@@ -56,33 +56,38 @@ namespace SimpleEcsSourceGenerator
                 var hashSys = new HashSet<string>();
                 foreach (var classDeclarationSyntax in syntaxReceiver.CandidateClasses)
                 {
-                    var isAbstractClass = classDeclarationSyntax.Modifiers.Any(modifier => modifier.IsKind(SyntaxKind.AbstractKeyword));
+                    var isAbstractClass =
+                        classDeclarationSyntax.Modifiers.Any(modifier => modifier.IsKind(SyntaxKind.AbstractKeyword));
                     if (isAbstractClass)
                     {
                         continue;
                     }
+
                     var semanticModel = context.Compilation.GetSemanticModel(classDeclarationSyntax.SyntaxTree);
                     var classSymbol = semanticModel.GetDeclaredSymbol(classDeclarationSyntax);
                     if (classSymbol == null)
                     {
                         continue;
                     }
-                    var isImplementIEcsSystem = classSymbol.AllInterfaces.Contains(iEcsSystem, SymbolEqualityComparer.Default);
+
+                    var isImplementIEcsSystem =
+                        classSymbol.AllInterfaces.Contains(iEcsSystem, SymbolEqualityComparer.Default);
                     if (isImplementIEcsSystem)
                     {
                         foreach (var ifc in classSymbol.Interfaces)
                         {
-                            if ( ifc.AllInterfaces.Contains(iObserver, SymbolEqualityComparer.Default))
+                            if (ifc.AllInterfaces.Contains(iObserver, SymbolEqualityComparer.Default))
                             {
                                 if (!observerDict.TryGetValue(ifc, out var systemNames))
                                 {
                                     observerDict[ifc] = new HashSet<string>();
                                     systemNames = observerDict[ifc];
                                 }
+
                                 systemNames.Add(classDeclarationSyntax.Identifier.ValueText);
                             }
                         }
-                        
+
                         hashSys.Add(classDeclarationSyntax.Identifier.ValueText);
                     }
                 }
@@ -119,8 +124,9 @@ namespace SimpleEcsSourceGenerator
                                 {
                                     var param = method.Parameters[i];
                                     parameterBuilder.Append(param.Type.ToDisplayString());
-                                    parameterBuilder.Append($" arg{i}");
-                                    parameterBuilderNoType.Append($"arg{i}");
+                                    
+                                    parameterBuilder.Append($" {param.Name}");
+                                    parameterBuilderNoType.Append($"{param.Name}");
                                     if (i != method.Parameters.Length - 1)
                                     {
                                         parameterBuilder.Append(", ");
