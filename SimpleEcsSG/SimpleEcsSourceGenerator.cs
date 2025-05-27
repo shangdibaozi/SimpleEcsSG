@@ -16,9 +16,35 @@ namespace SimpleEcsSourceGenerator
         private readonly List<string> methods = new List<string>();
         private readonly List<string> methodParams = new List<string>();
         private readonly List<string> methodParamNoType = new List<string>();
-        
+        private const string _attributeText = @"
+using System.Runtime.CompilerServices;
+
+public partial class World
+{
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static T Singleton<T>() where T : class, new()
+    {
+        return SingletonComponent<T>.obj;
+    }
+    
+    private abstract class SingletonComponent<T> where T : class, new()
+    {
+        // ReSharper disable once StaticMemberInGenericType
+        internal static readonly T obj;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        static SingletonComponent()
+        {
+            obj = new T();
+        }
+    }
+}
+";
+
         public void Initialize(GeneratorInitializationContext context)
         {
+            context.RegisterForPostInitialization
+                (i => i.AddSource("World.g.cs", _attributeText));
             context.RegisterForSyntaxNotifications(() => new CustomSyntaxReceiver());
         }
         
